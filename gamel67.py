@@ -32,34 +32,61 @@ coin_spawn_timer = 0
 difficulty_timer = 0
 
 # =====================================================
+# ЗВУКИ (🔊 НОВЕ)
+# =====================================================
+try:
+    # Звук стрибка
+    jump_sound = Audio('jump.mp3', loop=False, autoplay=False)
+    jump_sound.volume = 0.5
+    
+    # Звук збору монет
+    coin_sound = Audio('coin.mp3', loop=False, autoplay=False)
+    coin_sound.volume = 0.6
+    
+    # Звук зіткнення
+    crash_sound = Audio('crush.mp3', loop=False, autoplay=False)
+    crash_sound.volume = 0.7
+    
+    # Фонова музика (основний)
+    bg_music = Audio('back ground.mp3', loop=True, autoplay=True)
+    bg_music.volume = 0.3  # Невелика гучність, щоб не перекривати інші звуки
+except Exception as e:
+    # Якщо файли не знайдені, виводимо повідомлення
+    print(f"⚠️ Звукові файли не знайдені: {e}")
+    print("Потрібно додати файли у папку з грою:")
+    print("- jump.wav")
+    print("- coin.wav")
+    print("- crash.wav")
+    print("- background_music.mp3")
+    print("Для безкоштовних звуків можна використати:")
+    print("  • Freesound.org")
+    print("  • OpenGameArt.org")
+    print("  • Mixkit.co")
+
+# =====================================================
 # ОСВІТЛЕННЯ ТА АТМОСФЕРА
 # =====================================================
-# Сонячне світло з тінями
 sun = DirectionalLight()
 sun.look_at(Vec3(1, -1, -1))
-sun.color = color.hsv(45, 0.3, 1.0)        # Тепле сонячне світло
-
-# М'яке ambient освітлення
+sun.color = color.hsv(45, 0.3, 1.0)
 ambient = AmbientLight(color=color.hsv(220, 0.2, 0.4))
 
-# Гарне небо (з fallback, якщо текстури немає)
 try:
     sky = Sky(texture='sky_sunset')
 except:
     sky = Sky(color=color.hsv(200, 0.4, 0.8))
 
-# Атмосферний туман для глибини
 scene.fog_color = color.hsv(200, 0.3, 0.7)
 scene.fog_density = 0.015
 
 # =====================================================
-# СТИЛЬ МАТЕРІАЛІВ
+# МАТЕРІАЛИ
 # =====================================================
 player_shader = lit_with_shadows_shader
 road_shader = lit_with_shadows_shader
 
 # =====================================================
-# СТВОРЕННЯ ДОРОГИ (Сегментована для ефекту руху)
+# ДОРОГА (сегментована)
 # =====================================================
 road_segments = []
 SEGMENT_LENGTH = 20
@@ -68,7 +95,7 @@ NUM_SEGMENTS = 6
 for i in range(NUM_SEGMENTS):
     seg = Entity(
         model='cube',
-        color=color.hsv(0, 0, 0.25),        # Темно-сіра дорога
+        color=color.hsv(0, 0, 0.25),
         scale=(8, 0.3, SEGMENT_LENGTH),
         position=(0, -0.15, i * SEGMENT_LENGTH),
         shader=road_shader,
@@ -76,24 +103,22 @@ for i in range(NUM_SEGMENTS):
     )
     road_segments.append(seg)
 
-    # Розділові лінії на сегменті
     for x in (-1.25, 1.25):
         Entity(
             parent=seg,
             model='cube',
-            color=color.hsv(60, 0.3, 1.0),  # Жовтуваті лінії
+            color=color.hsv(60, 0.3, 1.0),
             scale=(0.15, 0.32, 2),
             position=(x, 0.01, 0),
             unlit=True
         )
 
-# Тротуари (бордюри)
 curbs = []
 for i in range(NUM_SEGMENTS):
     for side in (-1, 1):
         curb = Entity(
             model='cube',
-            color=color.hsv(30, 0.4, 0.4),  # Коричневі бордюри
+            color=color.hsv(30, 0.4, 0.4),
             scale=(0.5, 0.5, SEGMENT_LENGTH),
             position=(side * 4.25, 0.1, i * SEGMENT_LENGTH),
             shader=road_shader
@@ -101,12 +126,10 @@ for i in range(NUM_SEGMENTS):
         curbs.append(curb)
 
 # =====================================================
-# ДЕКОРАЦІЇ ПО БОКАХ ДОРОГИ
+# ДЕКОРАЦІЇ
 # =====================================================
 def create_tree(x, z):
-    """Створює просте 3D дерево"""
     tree = Entity(position=(x, 0, z))
-    # Стовбур
     Entity(
         parent=tree,
         model='cube',
@@ -115,11 +138,10 @@ def create_tree(x, z):
         position=(0, 1, 0),
         shader=lit_with_shadows_shader
     )
-    # Крона (куля)
     Entity(
         parent=tree,
         model='sphere',
-        color=color.hsv(120, 0.7, 0.5),     # Зелена крона
+        color=color.hsv(120, 0.7, 0.5),
         scale=(1.8, 1.8, 1.8),
         position=(0, 2.5, 0),
         shader=lit_with_shadows_shader
@@ -127,7 +149,6 @@ def create_tree(x, z):
     return tree
 
 def create_building(x, z):
-    """Створює простий будинок"""
     height = random.uniform(3, 6)
     building = Entity(
         model='cube',
@@ -138,32 +159,28 @@ def create_building(x, z):
     )
     return building
 
-# Генеруємо декорації вздовж дороги
 for i in range(30):
     z = i * 8
-    # Ліва сторона
     if random.random() > 0.3:
         decorations.append(create_tree(random.uniform(-7, -6), z + random.uniform(-2, 2)))
     else:
         decorations.append(create_building(random.uniform(-8, -6), z))
-    # Права сторона
     if random.random() > 0.3:
         decorations.append(create_tree(random.uniform(6, 7), z + random.uniform(-2, 2)))
     else:
         decorations.append(create_building(random.uniform(6, 8), z))
 
 # =====================================================
-# СТВОРЕННЯ ГРАВЦЯ
+# ГРАВЕЦЬ
 # =====================================================
 player = Entity(
     model='cube',
-    color=color.hsv(210, 0.9, 0.7),         # Яскраво-синій
+    color=color.hsv(210, 0.9, 0.7),
     scale=(0.8, 1.2, 0.8),
     position=(0, 0.6, 0),
     shader=lit_with_shadows_shader
 )
 
-# "Очі" гравця
 Entity(
     parent=player,
     model='cube',
@@ -186,10 +203,9 @@ Entity(
     position=(0.15, 0.2, 0.45)
 )
 
-# Тінь під гравцем
 player_shadow = Entity(
     model='circle',
-    color=color.hsv(0, 0, 0, 0.4),          # Напівпрозорий чорний
+    color=color.hsv(0, 0, 0, 0.4),
     scale=(1.2, 1, 1.2),
     position=(0, 0.02, 0),
     rotation_x=90,
@@ -211,24 +227,21 @@ score_text = Text(
     position=(-0.85, 0.45),
     scale=1.8,
     color=color.white,
-    font='monospace',
-    background=True
+    background=color.rgba(0, 0, 0, 120)
 )
 coins_text = Text(
     text='COINS: 0',
     position=(-0.85, 0.35),
     scale=1.8,
     color=color.yellow,
-    font='monospace',
-    background=True
+    background=color.rgba(0, 0, 0, 120)
 )
 speed_text = Text(
     text='SPEED: 15',
     position=(0.7, 0.45),
     scale=1.8,
     color=color.cyan,
-    font='monospace',
-    background=True
+    background=color.rgba(0, 0, 0, 120)
 )
 
 # =====================================================
@@ -237,7 +250,6 @@ speed_text = Text(
 particles = []
 
 def spawn_particles(position, col, count=20):
-    """Створює вибух частинок"""
     for _ in range(count):
         p = Entity(
             model='cube',
@@ -255,7 +267,6 @@ def spawn_particles(position, col, count=20):
         particles.append(p)
 
 def update_particles(dt):
-    """Оновлює частинки"""
     for p in particles[:]:
         p.lifetime -= dt
         if p.lifetime <= 0:
@@ -295,11 +306,13 @@ def input(key):
         jump()
 
 def jump():
-    """Стрибок гравця"""
     if player.y <= 0.65:
         player.animate_y(2.8, duration=0.35, curve=curve.out_quad)
         invoke(player.animate_y, 0.6, duration=0.35,
                delay=0.35, curve=curve.in_quad)
+        # 🔊 Звук стрибка
+        if jump_sound:
+            jump_sound.play()
 
 # =====================================================
 # СПАВН ПЕРЕШКОД
@@ -315,7 +328,7 @@ def spawn_obstacle():
     if obstacle_type == 'low':
         obs = Entity(
             model='cube',
-            color=color.hsv(0, 0.9, 0.6),       # Червоний
+            color=color.hsv(0, 0.9, 0.6),
             scale=(1.2, 1.2, 1.2),
             position=(lane, 0.6, 60),
             shader=lit_with_shadows_shader
@@ -324,7 +337,7 @@ def spawn_obstacle():
     else:
         obs = Entity(
             model='cube',
-            color=color.hsv(300, 0.9, 0.6),     # Фіолетовий
+            color=color.hsv(300, 0.9, 0.6),
             scale=(1.2, 2.5, 1.2),
             position=(lane, 1.25, 60),
             shader=lit_with_shadows_shader
@@ -345,7 +358,7 @@ def spawn_coin():
     lane = random.choice(lanes)
     coin = Entity(
         model='sphere',
-        color=color.hsv(50, 0.9, 1.0),          # Золотий
+        color=color.hsv(50, 0.9, 1.0),
         scale=(0.6, 0.6, 0.2),
         position=(lane, 1.0, 60),
         shader=lit_with_shadows_shader,
@@ -355,25 +368,22 @@ def spawn_coin():
     coin_list.append(coin)
 
 # =====================================================
-# ГОЛОВНИЙ ІГРОВИЙ ЦИКЛ
+# ІГРОВИЙ ЦИКЛ
 # =====================================================
 def update():
-    global speed, score, coins, game_over, spawn_timer, coin_spawn_timer, difficulty_timer
+    global speed, score, coins, game_over, spawn_timer, coin_spawn_timer, difficulty_timer, spawn_interval
 
     if game_over:
         return
 
     dt = time.dt
-
     update_particles(dt)
 
-    # 1. Зростання складності
     difficulty_timer += dt
     if difficulty_timer >= 1.0:
         speed += 0.5
         difficulty_timer = 0
 
-    # 2. Рух дороги
     for seg in road_segments:
         seg.z -= speed * dt
         if seg.z < -SEGMENT_LENGTH:
@@ -384,23 +394,19 @@ def update():
         if curb.z < -SEGMENT_LENGTH:
             curb.z += SEGMENT_LENGTH * NUM_SEGMENTS
 
-    # 3. Рух декорацій
     for dec in decorations:
         dec.z -= speed * dt
         if dec.z < -10:
             dec.z += 240
 
-    # 4. Анімація гравця
     player.rotation_z = math.sin(time.time() * 8) * 2
 
-    # Тінь під гравцем
     player_shadow.x = player.x
     player_shadow.z = player.z
     shadow_scale = max(0.3, 1.2 - (player.y - 0.6) * 0.3)
     player_shadow.scale_x = shadow_scale
     player_shadow.scale_z = shadow_scale
 
-    # 5. Таймери спавну
     spawn_timer += dt
     coin_spawn_timer += dt
 
@@ -413,7 +419,6 @@ def update():
         spawn_coin()
         coin_spawn_timer = 0
 
-    # 6. Рух перешкод + колізії
     for obs in obstacles[:]:
         obs.z -= speed * dt
         obs.rotation_y += obs.rotation_speed * dt
@@ -435,7 +440,6 @@ def update():
             obstacles.remove(obs)
             destroy(obs)
 
-    # 7. Рух монеток + збір
     for coin in coin_list[:]:
         coin.z -= speed * dt
         coin.rotation_y += coin.rotation_speed * dt
@@ -448,6 +452,9 @@ def update():
             coins += 1
             score += 50
             spawn_particles(coin.position, color.yellow, 15)
+            # 🔊 Звук монети
+            if coin_sound:
+                coin_sound.play()
             coin_list.remove(coin)
             destroy(coin)
             continue
@@ -456,7 +463,6 @@ def update():
             coin_list.remove(coin)
             destroy(coin)
 
-    # 8. Оновлення рахунку
     score += dt * speed * 0.5
     score_text.text = f'SCORE: {int(score)}'
     coins_text.text = f'COINS: {coins}'
@@ -474,7 +480,14 @@ def trigger_game_over(position):
     spawn_particles(position, color.red, 40)
     spawn_particles(player.position, color.orange, 30)
 
-    # Тряска камери
+    # 🔊 Звук зіткнення
+    if crash_sound:
+        crash_sound.play()
+
+    # Зупиняємо фонову музику
+    if bg_music:
+        bg_music.stop()
+
     original_pos = camera.position
     camera.animate('position', original_pos + Vec3(0.5, 0.5, 0), duration=0.05)
     invoke(camera.animate, 'position', original_pos - Vec3(0.5, 0.5, 0),
@@ -482,11 +495,10 @@ def trigger_game_over(position):
     invoke(camera.animate, 'position', original_pos,
            duration=0.05, delay=0.1)
 
-    # UI
     panel = Entity(
         parent=camera.ui,
         model='quad',
-        color=color.rgba(0, 0, 0, 190),         # Напівпрозорий чорний
+        color=color.rgba(0, 0, 0, 190),
         scale=(1, 1),
         z=-1
     )
@@ -557,6 +569,10 @@ def restart():
     score_text.text = 'SCORE: 0'
     coins_text.text = 'COINS: 0'
     speed_text.text = f'SPEED: {int(speed)}'
+
+    # 🔊 Відновлюємо фонову музику
+    if bg_music:
+        bg_music.play()
 
     print("Game restarted!")
 
